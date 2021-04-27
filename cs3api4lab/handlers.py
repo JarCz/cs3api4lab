@@ -4,16 +4,15 @@ import json
 from grpc._channel import _InactiveRpcError
 
 from cs3api4lab.exception.exceptions import *
-from cs3api4lab.api.cs3_share_api import Cs3ShareApi
+from cs3api4lab.api.share_api_facade import ShareAPIFacade
 from cs3api4lab.api.cs3_public_share_api import Cs3PublicShareApi
-from cs3api4lab.api.cs3_ocm_share_api import Cs3OcmShareApi
 from cs3api4lab.api.cs3_user_api import Cs3UserApi
 
 
 class ShareHandler(APIHandler):
     @property
     def share_api(self):
-        return Cs3ShareApi(self.log)
+        return ShareAPIFacade(self.log)
 
     @web.authenticated
     @gen.coroutine
@@ -42,7 +41,7 @@ class ShareHandler(APIHandler):
         request = self.get_json_body()
         try:
             RequestHandler.handle_request(self,
-                                          self.share_api.update,
+                                          self.share_api.update_share,
                                           204,
                                           request['share_id'],
                                           request['role'])
@@ -53,18 +52,18 @@ class ShareHandler(APIHandler):
 class ListSharesHandler(APIHandler):
     @property
     def share_api(self):
-        return Cs3ShareApi(self.log)
+        return ShareAPIFacade(self.log)
 
     @web.authenticated
     @gen.coroutine
     def get(self):
-        RequestHandler.handle_request(self, self.share_api.list_dir_model, 200)
+        RequestHandler.handle_request(self, self.share_api.list_shares, 200)
 
 
 class ListReceivedSharesHandler(APIHandler):
     @property
     def share_api(self):
-        return Cs3ShareApi(self.log)
+        return ShareAPIFacade(self.log)
 
     @web.authenticated
     @gen.coroutine
@@ -82,7 +81,7 @@ class ListReceivedSharesHandler(APIHandler):
 class ListSharesForFile(APIHandler):
     @property
     def share_api(self):
-        return Cs3ShareApi(self.log)
+        return ShareAPIFacade(self.log)
 
     @web.authenticated
     @gen.coroutine
@@ -133,7 +132,6 @@ class PublicSharesHandler(APIHandler):
                                       request['field_type'],
                                       request['field_value'])
 
-
 class GetPublicShareByTokenHandler(APIHandler):
     @property
     def public_share_api(self):
@@ -146,7 +144,6 @@ class GetPublicShareByTokenHandler(APIHandler):
         password = self.get_query_argument('password', default='')
         RequestHandler.handle_request(self, self.public_share_api.get_public_share_by_token, 200, token, password)
 
-
 class ListPublicSharesHandler(APIHandler):
     @property
     def public_share_api(self):
@@ -156,76 +153,6 @@ class ListPublicSharesHandler(APIHandler):
     @gen.coroutine
     def get(self):
         RequestHandler.handle_request(self, self.public_share_api.list_public_shares, 200)
-
-
-class OcmSharesHandler(APIHandler):
-    @property
-    def ocm_share_api(self):
-        return Cs3OcmShareApi(self.log)
-
-    @web.authenticated
-    @gen.coroutine
-    def post(self):
-        request = self.get_json_body()
-        RequestHandler.handle_request(self,
-                                      self.ocm_share_api.create_ocm_share,
-                                      201,
-                                      request['grantee_opaque'],
-                                      request['idp'],
-                                      request['domain'],
-                                      request['endpoint'],
-                                      request['file_path'],
-                                      request['grantee_type'],
-                                      request['role'],
-                                      request['reshare'])
-
-    @web.authenticated
-    @gen.coroutine
-    def get(self):
-        share_id = self.get_argument('share_id') if 'share_id' in self.request.arguments else None
-        RequestHandler.handle_request(self, self.ocm_share_api.get_ocm_shares,
-                                      200,
-                                      share_id)
-
-    @web.authenticated
-    @gen.coroutine
-    def put(self):
-        request = self.get_json_body()
-        RequestHandler.handle_request(self, self.ocm_share_api.update_ocm_share,
-                                      204,
-                                      request['share_id'],
-                                      request['field'],
-                                      request['value'])
-
-    @web.authenticated
-    @gen.coroutine
-    def delete(self):
-        share_id = self.get_query_argument('share_id')
-        RequestHandler.handle_request(self, self.ocm_share_api.remove_ocm_share, 204, share_id)
-
-
-class OcmReceivedSharesHandler(APIHandler):
-    @property
-    def ocm_share_api(self):
-        return Cs3OcmShareApi(self.log)
-
-    @web.authenticated
-    @gen.coroutine
-    def get(self):
-        share_id = self.get_argument('share_id') if 'share_id' in self.request.arguments else None
-        RequestHandler.handle_request(self, self.ocm_share_api.get_received_ocm_shares,
-                                      200,
-                                      share_id)
-
-    @web.authenticated
-    @gen.coroutine
-    def put(self):
-        request = self.get_json_body()
-        RequestHandler.handle_request(self, self.ocm_share_api.update_received_ocm_share,
-                                      204,
-                                      request['share_id'],
-                                      request['field'],
-                                      request['value'])
 
 class UserInfoHandler(APIHandler):
     @property
@@ -270,8 +197,6 @@ handlers = [
     (r"/api/cs3/public/shares", PublicSharesHandler),
     (r"/api/cs3/public/shares/list", ListPublicSharesHandler),
     (r"/api/cs3/public/share", GetPublicShareByTokenHandler),
-    (r"/api/cs3/ocm", OcmSharesHandler),
-    (r"/api/cs3/ocm/received", OcmReceivedSharesHandler),
     (r"/api/cs3/user", UserInfoHandler),
     (r"/api/cs3/user/claim", UserInfoClaimHandler),
     (r"/api/cs3/user/query", UserQueryHandler)

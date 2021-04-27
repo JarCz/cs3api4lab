@@ -23,6 +23,7 @@ class ShareUtils:
     @staticmethod
     def map_state(state):
         if isinstance(state, str):
+            state = str.lower(state)
             if state == State.PENDING:
                 return sharing_res.SHARE_STATE_PENDING
             elif state == State.ACCEPTED:

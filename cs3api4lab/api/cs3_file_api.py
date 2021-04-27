@@ -8,9 +8,10 @@ Authors:
 
 import http
 import time
+import webdav3.client as webdav
 
 import cs3.gateway.v1beta1.gateway_api_pb2_grpc as cs3gw_grpc
-import cs3.rpc.v1beta1.code_pb2 as cs3code
+import cs3.rpc.code_pb2 as cs3code
 import cs3.storage.provider.v1beta1.provider_api_pb2 as cs3sp
 import cs3.types.v1beta1.types_pb2 as types
 import grpc
@@ -101,11 +102,20 @@ class Cs3FileApi:
         file_get = None
         try:
             protocol = [p for p in init_file_download.protocols if p.protocol == "simple"][0]
-            headers = {
-                'x-access-token': self.auth.authenticate(),
-                'X-Reva-Transfer': protocol.token    # needed if the downloads pass through the data gateway in reva
-            }
-            file_get = requests.get(url=protocol.download_endpoint, headers=headers)
+            if protocol.opaque and init_file_download.protocols[0].opaque.map['webdav-file-path']:
+                download_url = protocol.download_endpoint + str(protocol.opaque.map['webdav-file-path'].value, 'utf-8')[1:]
+                file_get = webdav.Client({}).session.request(
+                    method='GET',
+                    url=download_url,
+                    headers={
+                        'X-Access-Token': str(protocol.opaque.map['webdav-token'].value, 'utf-8')}
+                )
+            else:
+                headers = {
+                    'x-access-token': self.auth.authenticate(),
+                    'X-Reva-Transfer': protocol.token  # needed if the downloads pass through the data gateway in reva
+                }
+                file_get = requests.get(url=protocol.download_endpoint, headers=headers)
         except requests.exceptions.RequestException as e:
             self.log.error('msg="Exception when downloading file from Reva" reason="%s"' % e)
             raise IOError(e)

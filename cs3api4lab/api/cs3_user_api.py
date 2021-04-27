@@ -4,6 +4,7 @@ import cs3.identity.user.v1beta1.user_api_pb2_grpc as user_api_grpc
 from cs3api4lab.auth.channel_connector import ChannelConnector
 from cs3api4lab.auth.authenticator import Auth
 from cs3api4lab.config.config_manager import Cs3ConfigManager
+import cs3.rpc.v1beta1.code_pb2 as cs3_code
 
 
 class Cs3UserApi:
@@ -18,21 +19,27 @@ class Cs3UserApi:
         user_id = id_res.UserId(idp=idp, opaque_id=opaque_id)
         request = user_api.GetUserRequest(user_id=user_id)
         response = self.api.GetUser(request=request)
-        return {"username": response.user.username,
-                "display_name": response.user.display_name,
-                "idp": response.user.id.idp,
-                "opaque_id": response.user.id.opaque_id,
-                "mail": response.user.mail}
+        if response.status.code == cs3_code.CODE_OK:
+            return {"username": response.user.username,
+                    "display_name": response.user.display_name,
+                    "idp": response.user.id.idp,
+                    "opaque_id": response.user.id.opaque_id,
+                    "mail": response.user.mail}
+        else:
+            return {}
 
     def get_user_info_by_claim(self, claim, value):
         # get user info by mail or username
         request = user_api.GetUserByClaimRequest(claim=claim, value=value)
         response = self.api.GetUserByClaim(request=request)
-        return {"username": response.user.username,
-                "display_name": response.user.display_name,
-                "idp": response.user.id.idp,
-                "opaque_id": response.user.id.opaque_id,
-                "mail": response.user.mail}
+        if response.status.code == cs3_code.CODE_OK:
+            return {"username": response.user.username,
+                    "display_name": response.user.display_name,
+                    "idp": response.user.id.idp,
+                    "opaque_id": response.user.id.opaque_id,
+                    "mail": response.user.mail}
+        else:
+            return {}
 
     def find_users_by_query(self, query):
         response = self.api.FindUsers(user_api.FindUsersRequest(filter=query),
